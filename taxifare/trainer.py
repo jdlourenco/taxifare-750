@@ -1,7 +1,8 @@
-from taxifare.data import get_data, clean_df, holdout
+from taxifare.data import get_data, clean_df, holdout, BUCKET_NAME
 from taxifare.pipeline import get_pipeline
 from taxifare.utils import compute_rmse
 import joblib
+from google.cloud import storage
 
 VALID_REGRESSORS = ["random_forest" , "linear_model"]
 
@@ -14,37 +15,40 @@ class Trainer():
             print("invalid regressor")
             raise Exception()
     
+    def upload_to_gcp(self, filename):
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(f"models/myfirstmodel/{self.regressor}.joblib")
+        blob.upload_from_filename(filename)
+
     def save_model(self):
         model_file_name = f"{self.regressor}.joblib"
         joblib.dump(self.pipeline, model_file_name)
+        self.upload_to_gcp(model_file_name)
     
     def train(self):
         # get data
         df = get_data(nrows=self.nrows)
-        # print(df.head())
-        # print(df.shape)
+
         # clean data
         df_clean = clean_df(df)
-        print(df_clean.shape)
-        # holdout
+
+        # # holdout
         X_train, X_test, y_train, y_test = holdout(df_clean)
-        # print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-        # get_pipeline
+
+        # # get_pipeline
         self.pipeline = get_pipeline(model=self.regressor)
-        # pipeline = get_pipeline()
-        # train
+
+        # # train
         self.pipeline.fit(X_train, y_train)
-        # pipeline.fit(X_train, y_train)
+
         # evaluate
         y_pred = self.pipeline.predict(X_test)
-        # y_pred = pipeline.predict(X_test)
+
         metric = compute_rmse(y_pred, y_test)
         print(f"rmse={metric}")
         # save
-        # self.save_model()
-        # self.save_model(pipeline)
         self.save_model()
-
 
 if __name__ == "__main__":
     for model in ["random_forest" , "linear_model"]:

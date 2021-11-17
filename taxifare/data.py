@@ -1,8 +1,14 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+# TODO: set my own bucket name here
+BUCKET_NAME = "wagon-data-750-lourenco"
+DATASET_PATH = "data/train_1k.csv"
+
 def get_data(nrows=100):
-    url = "s3://wagon-public-datasets/taxi-fare-train.csv"
+    # url = "s3://wagon-public-datasets/taxi-fare-train.csv"
+    url = f"gs://{BUCKET_NAME}/{DATASET_PATH}"
+    print(f"fetching our data from {url}")
     df = pd.read_csv(url, nrows=nrows)
     return df
 
